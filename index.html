@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fdf6f3">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="얼굴균형">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>얼굴 균형 셀프 체크</title>
+<style>
+:root{
+  --bg:#fdf6f3; --card:#fff; --ink:#2b2b2f; --sub:#7a7a85; --line:#eee3de;
+  --accent:#e7857b; --ok:#3fa37a; --warn:#e0a030; --check:#d9604f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;line-height:1.55}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:8px 0 4px}
+.lead{color:var(--sub);font-size:14px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.tips{margin:0;padding-left:18px;font-size:14px;color:#444}
+.tips li{margin:4px 0}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);margin-top:8px}
+.privacy{font-size:12.5px;color:var(--sub);margin-top:10px;text-align:center}
+#status{text-align:center;color:var(--sub);font-size:14px;padding:10px}
+.hidden{display:none!important}
+canvas{width:100%;height:auto;border-radius:14px;display:block;background:#000}
+.legend{font-size:12px;color:var(--sub);margin-top:8px}
+.summary{font-size:15px}
+.summary b{color:var(--accent)}
+.warnbox{background:#fff6e5;border:1px solid #f3dca5;color:#7a5a10;border-radius:12px;padding:10px 12px;font-size:13.5px;margin:10px 0}
+.metric{border-top:1px solid var(--line);padding:14px 0}
+.metric:first-child{border-top:0;padding-top:0}
+.mh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mt{font-weight:700;font-size:15px}
+.chip{font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px;color:#fff;white-space:nowrap}
+.chip.s0{background:var(--ok)} .chip.s1{background:var(--warn)} .chip.s2{background:var(--check)}
+.mv{font-size:20px;font-weight:800;margin:4px 0 0}
+.mi{font-size:12.5px;color:var(--sub)}
+.mc{font-size:14px;margin-top:6px;background:#fbf3f0;border-radius:10px;padding:9px 11px}
+.sec{font-size:16px;font-weight:800;margin:0 0 8px}
+.ask{font-size:14px;margin:0 0 10px;padding:10px 12px;background:#f3f7fb;border-radius:10px}
+.ask small{display:block;color:var(--sub);margin-top:3px;font-size:12.5px}
+.disc{font-size:12.5px;color:var(--sub)}
+.bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%}
+.linkbtn{display:block;margin:12px auto 0;background:none;border:0;color:var(--sub);font-size:13.5px;text-decoration:underline;cursor:pointer}
+.sidehead{font-size:17px;font-weight:800;margin:22px 0 4px}
+.mini{font-size:12.5px;color:var(--sub)}
+.area{border-top:1px solid var(--line);padding:14px 0}
+.area:first-of-type{border-top:0}
+.ah{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.at{font-weight:700;font-size:15px}
+.vt{font-size:11.5px;color:var(--sub);margin-left:6px;font-weight:600}
+.opt{font-size:14px;margin:7px 0 0;display:flex;gap:6px;align-items:flex-start}
+.tag{flex:none;font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:6px;color:#fff;margin-top:2px}
+.tg0{background:#3fa37a}.tg1{background:#5b8def}.tg2{background:#d9604f}.tg3{background:#8a6fd1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>얼굴 균형 셀프 체크</h1>
+  <p class="lead">상담 가기 전에 내 얼굴 비율을 가볍게 점검해보는 참고용 도구예요.</p>
+
+  <div id="intro" class="card">
+    <ul class="tips">
+      <li>정면, 무표정, 입 다문 상태로 찍어주세요</li>
+      <li>머리카락은 이마와 얼굴선이 보이게 넘겨주세요</li>
+      <li>카메라는 눈높이, 조명은 얼굴 전체가 고르게</li>
+      <li>고개가 기울거나 돌아가면 수치가 흔들려요</li>
+    </ul>
+    <button id="installBtn" class="linkbtn hidden">홈 화면에 앱으로 설치</button>
+    <div id="iosHint" class="mini hidden" style="margin-top:10px">iPhone은 Safari 공유 버튼 → "홈 화면에 추가"로 설치할 수 있어요.</div>
+  </div>
+
+  <input id="file" type="file" accept="image/*" class="hidden">
+  <button id="pick" class="btn">사진 선택 / 촬영</button>
+  <div class="privacy">🔒 사진은 서버로 전송되지 않고, 이 기기 브라우저 안에서만 분석돼요.</div>
+  <button id="pickSide" class="linkbtn">측면 사진만 분석하기</button>
+  <input id="fileSide" type="file" accept="image/*" class="hidden">
+  <div id="status" class="hidden"></div>
+
+  <div id="result" class="hidden">
+   <div id="frontSec">
+    <div class="card">
+      <canvas id="cv"></canvas>
+      <div class="legend">가이드선은 AI가 찾은 얼굴 특징점 기준이라 실제 헤어라인/뼈 위치와 조금 다를 수 있어요.</div>
+    </div>
+    <div id="warns"></div>
+    <div class="card summary" id="summary"></div>
+    <div class="card" id="metrics"></div>
+    </div>
+   <div id="frontAdd" class="card hidden">
+     <div class="mini" style="margin-bottom:10px">정면 사진 분석도 같이 보면 상담 질문이 더 정확해져요.</div>
+     <button id="pickFront2" class="btn ghost" style="margin-top:0">정면 사진 추가</button>
+   </div>
+   <div id="sideSec" class="hidden">
+     <div class="sidehead">측면 분석</div>
+     <div id="sideWarns"></div>
+     <div class="card">
+       <canvas id="cvSide"></canvas>
+       <div class="legend">빨간선: E라인(코끝~턱끝) · 노란선: 비순각 · 파란 점선: 안면 볼록도. AI 특징점 기준이라 실제 윤곽과 조금 다를 수 있어요.</div>
+     </div>
+     <div class="card summary" id="sideSummary"></div>
+     <div class="card" id="sideMetrics"></div>
+   </div>
+   <div class="card" id="sideAdd">
+     <div class="mini" style="margin-bottom:6px">측면 사진을 추가하면 입술 돌출(E라인), 턱끝 위치, 비순각도 점검해드려요. (선택)</div>
+     <div class="mini" style="margin-bottom:10px">· 정확히 옆모습, 귀가 보이게<br>· 무표정, 입 다문 상태, 시선은 수평(턱 당기지 않기)<br>· 머리카락은 넘겨서 이마와 턱선이 보이게</div>
+     <button id="pickSide2" class="btn ghost" style="margin-top:0">측면 사진 추가</button>
+     <button id="saveSide" class="btn ghost hidden">측면 분석 이미지 저장</button>
+   </div>
+   <div class="card" id="report"></div>
+   <div class="card" id="consult"></div>
+    <div class="card disc">
+      ⚠️ 이 결과는 사진으로 계산한 단순 수치이며, 의학적 진단이나 시술 권유가 아니에요. 소개된 시술명은 일반 정보일 뿐 특정 병원·제품·가격 안내가 아니고, 시술마다 부작용과 회복 기간이 있어요. 성장기(만 19세 미만)는 상담 전에 보호자·전문의와 먼저 상의하세요. 각도·조명·표정에 따라 달라질 수 있고, "이상적인 비율"은 하나의 참고 기준일 뿐 아름다움의 정답이 아닙니다. 실제 시술 여부는 반드시 의료기관에서 전문의와 직접 상담해서 결정하세요.
+    </div>
+    <button id="save" class="btn">정면 분석 이미지 저장</button>
+    <button id="retry" class="btn ghost">다른 사진으로 다시</button>
+  </div>
+</div>
+
+<script type="module">
+const VER = "0.10.14";
+const $ = (id) => document.getElementById(id);
+let landmarker = null;
+let hasFront = false, hasSide = false, frontAsk = [], sideAsk = [];
+let frontFlags = [], sideFlags = [], frontOk = [], sideOk = [], frontStat = { n: 0, ok: 0 }, sideStat = { n: 0, ok: 0 };
+
+async function getLandmarker() {
+  if (landmarker) return landmarker;
+  const vision = await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}/+esm`);
+  const fileset = await vision.FilesetResolver.forVisionTasks(
+    `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}/wasm`
+  );
+  const modelAssetPath =
+    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+  const make = (delegate) =>
+    vision.FaceLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath, delegate },
+      runningMode: "IMAGE",
+      numFaces: 1,
+    });
+  try { landmarker = await make("GPU"); }
+  catch (e) { landmarker = await make("CPU"); }
+  return landmarker;
+}
+
+function setStatus(msg) {
+  const s = $("status");
+  if (!msg) { s.classList.add("hidden"); return; }
+  s.textContent = msg; s.classList.remove("hidden");
+}
+
+$("pick").onclick = () => $("file").click();
+$("retry").onclick = () => {
+  hasFront = hasSide = false; frontAsk = []; sideAsk = []; frontFlags = []; sideFlags = []; frontOk = []; sideOk = [];
+  $("result").classList.add("hidden");
+  $("intro").classList.remove("hidden");
+  $("pick").classList.remove("hidden");
+  $("pickSide").classList.remove("hidden");
+  $("file").value = ""; $("fileSide").value = "";
+  setStatus("");
+  window.scrollTo(0, 0);
+};
+
+function updateView() {
+  $("frontSec").classList.toggle("hidden", !hasFront);
+  $("save").classList.toggle("hidden", !hasFront);
+  $("frontAdd").classList.toggle("hidden", hasFront);
+  $("sideSec").classList.toggle("hidden", !hasSide);
+  $("saveSide").classList.toggle("hidden", !hasSide);
+  $("pickSide2").textContent = hasSide ? "측면 사진 다시 선택" : "측면 사진 추가";
+  $("intro").classList.add("hidden");
+  $("pick").classList.add("hidden");
+  $("pickSide").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  renderReport();
+}
+
+function renderConsult() {
+  renderReport();
+  const uniq = [...new Set([...frontAsk, ...sideAsk])];
+  $("consult").innerHTML = `<div class="sec">상담 갈 때 물어볼 만한 것</div>` + (uniq.length
+    ? uniq.map((a) => `<div class="ask">${a}</div>`).join("") +
+      `<div class="disc">시술이 꼭 필요하다는 뜻이 아니에요. 시술 외에 헤어·메이크업·자세로 보완하는 방법도 함께 물어보시고, 한 곳만 보지 말고 여러 곳에서 의견을 들어보세요.</div>`
+    : `<div class="ask">특별히 짚을 항목이 없어요. 상담을 가신다면 "내가 신경 쓰이는 부분"을 먼저 말씀해 보세요.</div>`);
+}
+
+$("file").onchange = async (e) => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  try {
+    setStatus("AI 모델 불러오는 중... (처음엔 조금 걸려요)");
+    const lm = await getLandmarker();
+    setStatus("얼굴 분석 중...");
+    const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
+    const max = 1280;
+    const sc = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * sc), h = Math.round(bmp.height * sc);
+    // 화면에 숨겨진 캔버스가 아니라 임시 캔버스에서 인식 (측면과 같은 방식)
+    const tmp = document.createElement("canvas");
+    tmp.width = w; tmp.height = h;
+    tmp.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    const out = lm.detect(tmp);
+    if (!out.faceLandmarks || !out.faceLandmarks.length) {
+      setStatus("얼굴을 찾지 못했어요. 정면이 잘 보이는 사진으로 다시 시도해 주세요.");
+      window.scrollTo(0, 0);
+      return;
+    }
+    const cv = $("cv");
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d");
+    ctx.drawImage(tmp, 0, 0);
+    const res = analyze(out.faceLandmarks[0], w, h);
+    drawOverlay(ctx, res, w, h);
+    render(res);
+    setStatus("");
+    hasFront = true; updateView();
+    window.scrollTo(0, 0);
+  } catch (err) {
+    console.error(err);
+    setStatus("분석 중 문제가 생겼어요: " + (err && err.message ? err.message : err));
+  }
+};
+
+/* ---------- 분석 ---------- */
+function analyze(lm, w, h) {
+  const P = lm.map((p) => ({ x: p.x * w, y: p.y * h }));
+  const roll = Math.atan2(P[263].y - P[33].y, P[263].x - P[33].x);
+  const c = P[1], cs = Math.cos(roll), sn = Math.sin(roll);
+  // 얼굴 기울기를 보정한 좌표계
+  const R = P.map((p) => {
+    const dx = p.x - c.x, dy = p.y - c.y;
+    return { x: dx * cs + dy * sn, y: -dx * sn + dy * cs };
+  });
+  const ax = (a, b) => Math.abs(R[a].x - R[b].x);
+
+  const faceW = ax(234, 454);
+  const eyeW = (ax(33, 133) + ax(263, 362)) / 2;
+  const up = R[9].y - R[10].y, mid = R[2].y - R[9].y, low = R[152].y - R[2].y;
+  const sum = up + mid + low;
+  const thirds = [up, mid, low].map((v) => (v * 10) / sum);
+
+  // 이목구비 좌우 대칭
+  const midX = (R[10].x + R[9].x + R[152].x) / 3;
+  const pairs = [
+    ["눈꼬리", 33, 263], ["눈 앞쪽", 133, 362], ["입꼬리", 61, 291],
+    ["콧망울", 129, 358], ["광대 라인", 234, 454], ["턱 라인", 172, 397],
+  ];
+  const asym = pairs.map(([name, a, b]) => {
+    const da = Math.abs(R[a].x - midX), db = Math.abs(R[b].x - midX);
+    return { name, v: (Math.abs(da - db) / ((da + db) / 2)) * 100 };
+  });
+  const asymAvg = asym.reduce((s, a) => s + a.v, 0) / asym.length;
+  const asymMax = asym.reduce((m, a) => (a.v > m.v ? a : m), asym[0]);
+
+  // 눈꼬리 기울기 (바깥쪽이 위로 올라가면 +)
+  const tilt = (outer, inner) =>
+    (Math.atan2(-(R[outer].y - R[inner].y), Math.abs(R[outer].x - R[inner].x)) * 180) / Math.PI;
+  const canthal = (tilt(33, 133) + tilt(263, 362)) / 2;
+
+  const upperLip = R[13].y - R[0].y, lowerLip = R[17].y - R[14].y;
+  const philtrum = R[13].y - R[2].y, chin = R[152].y - R[13].y;
+
+  // 정면 여부 체크 (코끝이 양 볼 중앙에 있는지)
+  const left = Math.min(R[234].x, R[454].x), right = Math.max(R[234].x, R[454].x);
+  const t = (R[1].x - left) / (right - left);
+  const yawWarn = Math.abs(t - 0.5) > 0.07;
+  const rollDeg = (roll * 180) / Math.PI;
+
+  return {
+    P, roll, thirds, asym, asymAvg, asymMax, canthal, yawWarn, rollDeg,
+    fiveEyes: faceW / eyeW,
+    eyeGap: ax(133, 362) / eyeW,
+    mouthNose: ax(61, 291) / ax(129, 358),
+    lipRatio: lowerLip / upperLip,
+    lowerFace: chin / philtrum,
+    aspect: (R[152].y - R[10].y) / faceW,
+    jaw: ax(172, 397) / faceW,
+  };
+}
+
+/* ---------- 오버레이 ---------- */
+function drawOverlay(ctx, r, w, h) {
+  const P = r.P, cs = Math.cos(r.roll), sn = Math.sin(r.roll);
+  const L = Math.max(w, h) * 0.45;
+  const lw = Math.max(2, w / 400);
+  const hline = (p, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+    ctx.moveTo(p.x - cs * L, p.y - sn * L); ctx.lineTo(p.x + cs * L, p.y + sn * L); ctx.stroke();
+  };
+  const vline = (p, color) => {
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+    ctx.moveTo(p.x + sn * L, p.y - cs * L); ctx.lineTo(p.x - sn * L, p.y + cs * L); ctx.stroke();
+  };
+  ctx.save();
+  ctx.setLineDash([lw * 4, lw * 3]);
+  // 삼분할 가로선
+  [10, 9, 2, 152].forEach((i) => hline(P[i], "rgba(255,120,110,.95)"));
+  // 오안 세로선
+  ctx.setLineDash([]);
+  [234, 33, 133, 362, 263, 454].forEach((i) => vline(P[i], "rgba(90,200,255,.85)"));
+  ctx.restore();
+
+  // 라벨
+  const fs = Math.max(14, Math.round(w / 32));
+  ctx.font = `800 ${fs}px sans-serif`;
+  ctx.textBaseline = "middle";
+  const lab = (txt, y) => {
+    const tw = ctx.measureText(txt).width + 14;
+    ctx.fillStyle = "rgba(0,0,0,.6)";
+    ctx.fillRect(8, y - fs * 0.8, tw, fs * 1.6);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(txt, 15, y);
+  };
+  lab("상 " + r.thirds[0].toFixed(1), (P[10].y + P[9].y) / 2);
+  lab("중 " + r.thirds[1].toFixed(1), (P[9].y + P[2].y) / 2);
+  lab("하 " + r.thirds[2].toFixed(1), (P[2].y + P[152].y) / 2);
+}
+
+/* ---------- 판정 ---------- */
+// 범위 안이면 0, 여유 안이면 1, 벗어나면 2
+const grade = (v, lo, hi, m) => (v >= lo && v <= hi ? 0 : v >= lo - m && v <= hi + m ? 1 : 2);
+const dir = (v, lo, hi) => (v < lo ? "low" : v > hi ? "high" : "ok");
+
+const DEFS = [
+  { key: "fiveEyes", title: "오안 비율 (얼굴 가로 ÷ 눈 너비)", lo: 4.6, hi: 5.4, m: 0.5, fmt: (v) => v.toFixed(1) + " : 1", ideal: "기준 약 5 : 1",
+    t: { ok: "얼굴 가로 대비 눈 크기가 정석 비율에 가까워요. 눈이 얼굴에 잘 어울리는 타입이세요~",
+         low: "얼굴 폭에 비해 눈이 큰 편이에요. 또렷하고 인상이 확실한 비율이라 장점으로 보시면 돼요.",
+         high: "얼굴 폭에 비해 눈이 작아 보일 수 있는 비율이에요. 눈매 라인이나 메이크업으로 크기감 보완하는 분들 많아요." } },
+  { key: "eyeGap", title: "미간 거리 (눈 사이 ÷ 눈 너비)", lo: 0.9, hi: 1.1, m: 0.15, fmt: (v) => v.toFixed(2) + " 배", ideal: "기준 약 1.0배",
+    t: { ok: "미간이 눈 한 개 너비 정도로 딱 좋아요. 이 부분은 고민 안 하셔도 돼요.",
+         low: "미간이 좁은 편이라 인상이 또렷하고 강하게 보이는 타입이에요. 코 시작점 하이라이트 같은 메이크업으로 부드럽게 보완하기도 해요.",
+         high: "미간이 넓은 편이라 순하고 여유로운 인상이에요. 눈 앞쪽 음영 메이크업으로 보완하는 경우가 많아요." } },
+  { key: "canthal", title: "눈꼬리 기울기", lo: 2, hi: 9, m: 3, fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(1) + "°", ideal: "기준 약 +2° ~ +9°",
+    t: { ok: "눈꼬리가 살짝 올라가 있어 또렷하고 시원한 인상이세요.",
+         low: "눈꼬리가 수평이거나 살짝 처진 편이라 순하고 부드러운 인상이에요. 인상을 바꾸고 싶으시면 아이라인 각도만으로도 많이 달라져요.",
+         high: "눈꼬리가 꽤 올라간 편이라 샤프하고 도회적인 인상이에요. 부드럽게 보이고 싶으면 메이크업으로 풀어주는 방법이 있어요." } },
+  { key: "mouthNose", title: "입 너비 ÷ 콧망울 너비", lo: 1.3, hi: 1.7, m: 0.2, fmt: (v) => v.toFixed(2) + " 배", ideal: "기준 약 1.5배",
+    t: { ok: "입과 코의 너비 균형이 좋아요.",
+         low: "코에 비해 입이 작은 편이에요. 입꼬리 쪽 립라인 메이크업으로 균형을 맞추는 경우가 있어요.",
+         high: "코에 비해 입이 큰 편이에요. 시원시원한 인상을 주는 비율이에요." } },
+  { key: "lipRatio", title: "입술 비율 (아랫입술 ÷ 윗입술)", lo: 1.2, hi: 1.8, m: 0.3, fmt: (v) => "1 : " + v.toFixed(1), ideal: "기준 약 1 : 1.5",
+    t: { ok: "윗입술과 아랫입술 비율이 안정적이에요.",
+         low: "윗입술 비중이 큰 편이에요. 입술 라인을 살짝만 조정해도 인상이 달라지는 부분이라, 상담 때 한번 여쭤볼 만해요.",
+         high: "아랫입술 비중이 큰 편이에요. 도톰한 아랫입술은 매력 포인트가 되기도 해요." } },
+  { key: "lowerFace", title: "하안부 구성 (코밑~입 : 입~턱끝)", lo: 1.6, hi: 2.6, m: 0.4, fmt: (v) => "1 : " + v.toFixed(1), ideal: "기준 약 1 : 2",
+    t: { ok: "인중과 턱끝 길이 비율이 안정적이에요.",
+         low: "인중에 비해 턱끝 길이가 짧은 편이에요. 옆모습에서 턱끝이 들어가 보일 수 있어서, 측면 사진도 같이 가져가시면 상담이 더 정확해요.",
+         high: "인중에 비해 턱끝이 긴 편이에요. 턱끝 길이는 얼굴 인상에 영향이 커서 상담 때 짚어볼 만한 부분이에요." } },
+  { key: "aspect", title: "얼굴 세로 ÷ 가로", lo: 1.25, hi: 1.5, m: 0.1, fmt: (v) => v.toFixed(2), ideal: "참고 범위 1.25 ~ 1.5",
+    t: { ok: "얼굴형이 갸름과 둥근 사이, 무난한 비율이에요.",
+         low: "가로가 넓은 편이라 부드럽고 동글한 인상이에요. 가로폭은 헤어스타일로 보완이 쉬워요.",
+         high: "세로가 긴 편이라 성숙하고 갸름한 인상이에요. 앞머리나 볼륨 펌으로 길이감을 조절하는 분들이 많아요." } },
+  { key: "jaw", title: "턱 너비 ÷ 광대 너비", lo: 0.68, hi: 0.85, m: 0.06, fmt: (v) => v.toFixed(2), ideal: "참고 범위 0.68 ~ 0.85",
+    t: { ok: "광대와 턱 라인의 균형이 무난해요.",
+         low: "광대에 비해 턱이 갸름한 편이에요. 계란형·V라인에 가까운 비율이에요.",
+         high: "광대에 비해 턱 폭이 넓은 편이에요. 사각턱 느낌이 신경 쓰이면 윤곽 상담 때 물어볼 수 있어요." } },
+];
+
+const ASK = {
+  mid_high: ["중안부(코~눈 사이)가 길어 보이는지 실제 얼굴로 확인해 달라고 문의", "코 끝·인중 인상 개선 방법이 있는지 상담"],
+  mid_low: ["중안부가 짧아 보이는 편인지 확인 문의"],
+  low_high: ["하안부(코밑~턱끝) 길이 인상 개선 방법 상담", "턱끝 길이를 보완하는 옵션이 있는지 문의"],
+  low_low: ["턱끝 볼륨/각도 보완 옵션이 있는지 문의"],
+  up_high: ["이마 길이·헤어라인 관련 옵션이 있는지 문의"],
+  up_low: ["이마 볼륨/라인 관련 옵션 문의"],
+  lowerFace_low: ["옆모습에서 턱끝이 들어가 보이는지, 측면 기준으로 확인 요청"],
+  lowerFace_high: ["턱끝 길이 균형에 대해 상담"],
+  jaw_high: ["턱 라인·윤곽 인상에 대한 상담"],
+  lipRatio_low: ["입술 비율 관련 옵션이 있는지 문의"],
+  canthal_low: ["눈매 인상(눈꼬리 각도)을 바꾸는 방법이 있는지 문의"],
+  asym: ["좌우 차이가 큰 부위는 실제 얼굴·표정 상태에서 다시 확인 요청"],
+};
+
+function render(r) {
+  // 요약
+  const bad = [];
+  const flags = [];
+  const thirdsDev = r.thirds.map((v) => v - 10 / 3);
+  const tMax = Math.max(...thirdsDev.map(Math.abs));
+  const tStatus = tMax < 0.3 ? 0 : tMax < 0.55 ? 1 : 2;
+  const items = [];
+
+  // 삼분할
+  const names = ["상안부(이마)", "중안부(눈썹~코밑)", "하안부(코밑~턱끝)"];
+  const ids = ["up", "mid", "low"];
+  let tText;
+  if (tStatus === 0) tText = "상·중·하안 균형이 아주 좋으세요~ 정석 1:1:1에 가까운 비율이에요.";
+  else {
+    const i = thirdsDev.map(Math.abs).indexOf(tMax);
+    const longer = thirdsDev[i] > 0;
+    const tmap = {
+      up_high: "이마가 넓은 편이세요. 앞머리나 시스루뱅 하나로 비율이 확 잡히는 타입이에요.",
+      up_low: "이마가 짧은 편이라 귀엽고 어려 보이는 인상을 주는 경우가 많아요.",
+      mid_high: "중안부가 약간 길어 보여요. 각도와 표정에 영향받는 부위라 정면 무표정으로 한 번 더 찍어보시길 권해요.",
+      mid_low: "중안부가 짧은 편이라 동안 느낌이 나는 비율이에요.",
+      low_high: "하안부가 긴 편이에요. 턱끝 길이가 인상에 영향을 주는 부분이라 상담 때 짚어볼 만해요.",
+      low_low: "하안부가 짧은 편이에요. 턱끝 볼륨이나 각도에 따라 인상이 많이 달라져요.",
+    };
+    const k = ids[i] + (longer ? "_high" : "_low");
+    tText = tmap[k];
+    if (tStatus >= 1) { flags.push({ key: k, st: tStatus }); bad.push(...(ASK[k] || [])); }
+  }
+  items.push({
+    title: "얼굴 삼분할 (상 : 중 : 하)", status: tStatus,
+    value: r.thirds.map((v) => v.toFixed(1)).join(" : "), ideal: "기준 3.3 : 3.3 : 3.3",
+    comment: tText,
+    extra: `<div class="bar"><i style="width:${r.thirds[0] * 10}%;background:#f4b6ae"></i><i style="width:${r.thirds[1] * 10}%;background:#e7857b"></i><i style="width:${r.thirds[2] * 10}%;background:#c9574b"></i></div><div class="mi" style="margin-top:4px">※ 이마 위쪽은 헤어라인이 아니라 AI가 잡은 얼굴 윗점 기준이에요.</div>`,
+  });
+
+  // 일반 항목
+  for (const d of DEFS) {
+    const v = r[d.key];
+    const st = grade(v, d.lo, d.hi, d.m);
+    const dr = dir(v, d.lo, d.hi);
+    items.push({ title: d.title, status: st, value: d.fmt(v), ideal: d.ideal, comment: d.t[dr] });
+    if (st >= 1 && dr !== "ok") {
+      const k = d.key + "_" + dr;
+      flags.push({ key: k, st });
+      if (ASK[k]) bad.push(...ASK[k]);
+    }
+  }
+
+  // 대칭
+  const aSt = r.asymAvg < 4 ? 0 : r.asymAvg < 8 ? 1 : 2;
+  const aText =
+    aSt === 0 ? "좌우 대칭이 꽤 좋으세요. 사람 얼굴은 원래 약간씩 비대칭이라 이 정도면 아주 안정적이에요."
+    : `좌우 차이는 ${r.asymMax.name} 쪽이 가장 커요. 자세·표정·그림자에도 크게 좌우되는 항목이라, 정면 사진을 몇 장 더 찍어 비교해보세요.`;
+  items.push({ title: "좌우 대칭도 (평균 차이)", status: aSt, value: r.asymAvg.toFixed(1) + " %", ideal: "4% 이내면 양호", comment: aText });
+  if (aSt >= 1) { flags.push({ key: "asym", st: aSt }); bad.push(...ASK.asym); }
+
+  const nOk = items.filter((i) => i.status === 0).length;
+  const nCheck = items.filter((i) => i.status >= 1).length;
+  frontStat = { n: items.length, ok: nOk };
+  frontOk = items.filter((i) => i.status === 0).map((i) => i.title.split(" (")[0]);
+
+  $("summary").innerHTML =
+    `총 <b>${items.length}개</b> 항목 중 <b>${nOk}개</b>는 기준 안에 있고, <b>${nCheck}개</b>는 한번 살펴볼 만한 항목이에요.<br>` +
+    `<span class="mi">기준에서 조금 벗어난 건 "결점"이 아니라 그 사람만의 인상일 때가 훨씬 많아요.</span>`;
+
+  const chipTxt = ["좋아요", "살짝 차이", "체크"];
+  $("metrics").innerHTML =
+    `<div class="sec">항목별 결과</div>` +
+    items.map((i) => `
+      <div class="metric">
+        <div class="mh"><div class="mt">${i.title}</div><span class="chip s${i.status}">${chipTxt[i.status]}</span></div>
+        <div class="mv">${i.value}</div>
+        <div class="mi">${i.ideal}</div>
+        ${i.extra || ""}
+        <div class="mc">💬 ${i.comment}</div>
+      </div>`).join("");
+
+  frontAsk = [...new Set(bad)];
+  frontFlags = flags;
+  renderConsult();
+
+  // 촬영 경고
+  const w = [];
+  if (r.yawWarn) w.push("고개가 한쪽으로 돌아간 것 같아요. 정면으로 다시 찍으면 훨씬 정확해요.");
+  if (Math.abs(r.rollDeg) > 8) w.push(`머리가 많이 기울어 있었어요(약 ${Math.abs(r.rollDeg).toFixed(0)}°). 기울기는 자동 보정했지만 오차가 생길 수 있어요.`);
+  $("warns").innerHTML = w.map((t) => `<div class="warnbox">⚠️ ${t}</div>`).join("");
+}
+
+$("save").onclick = () => {
+  $("cv").toBlob((b) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = "face-balance.png";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, "image/png");
+};
+
+/* ---------- 측면 분석 ---------- */
+$("pickSide").onclick = () => $("fileSide").click();
+$("pickSide2").onclick = () => $("fileSide").click();
+$("pickFront2").onclick = () => $("file").click();
+
+$("fileSide").onchange = async (e) => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  try {
+    setStatus("AI 모델 불러오는 중... (처음엔 조금 걸려요)");
+    const lm = await getLandmarker();
+    setStatus("측면 분석 중...");
+    const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
+    const max = 1280;
+    const sc = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const w = Math.round(bmp.width * sc), h = Math.round(bmp.height * sc);
+    // 인식 실패 시 기존 결과가 깨지지 않도록 임시 캔버스에서 먼저 시도
+    const tmp = document.createElement("canvas");
+    tmp.width = w; tmp.height = h;
+    tmp.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    const out = lm.detect(tmp);
+    if (!out.faceLandmarks || !out.faceLandmarks.length) {
+      setStatus("측면 얼굴을 인식하지 못했어요. 완전한 옆모습이 어려우면 정면에서 15~20°만 돌린 사진으로 시도해 보세요.");
+      window.scrollTo(0, 0);
+      return;
+    }
+    const cv = $("cvSide");
+    cv.width = w; cv.height = h;
+    const ctx = cv.getContext("2d");
+    ctx.drawImage(tmp, 0, 0);
+    const res = analyzeSide(out.faceLandmarks[0], w, h);
+    drawSideOverlay(ctx, res, w, h);
+    renderSide(res);
+    setStatus("");
+    hasSide = true; updateView();
+    if (hasFront) $("sideSec").scrollIntoView({ behavior: "smooth" }); else window.scrollTo(0, 0);
+  } catch (err) {
+    console.error(err);
+    setStatus("측면 분석 중 문제가 생겼어요: " + (err && err.message ? err.message : err));
+    window.scrollTo(0, 0);
+  }
+};
+
+function analyzeSide(lm, w, h) {
+  const P = lm.map((p) => ({ x: p.x * w, y: p.y * h }));
+  const mean = P.reduce((s, p) => s + p.x, 0) / P.length;
+  const facing = P[1].x < mean ? -1 : 1; // -1: 화면 왼쪽을 바라봄, 1: 오른쪽
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  // 선 AB 기준, 얼굴이 바라보는 쪽이 +인 부호 있는 거리
+  const sdist = (A, B, p) => {
+    const L = dist(A, B);
+    let nx = (B.y - A.y) / L, ny = -(B.x - A.x) / L;
+    if (nx * facing < 0) { nx = -nx; ny = -ny; }
+    return (p.x - A.x) * nx + (p.y - A.y) * ny;
+  };
+  const angle = (a, b, c) => {
+    const v1 = { x: a.x - b.x, y: a.y - b.y }, v2 = { x: c.x - b.x, y: c.y - b.y };
+    const cos = (v1.x * v2.x + v1.y * v2.y) / (Math.hypot(v1.x, v1.y) * Math.hypot(v2.x, v2.y));
+    return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+  };
+  // 1 코끝, 2 코밑, 0 윗입술, 17 아랫입술, 175 턱끝(근사), 9 미간
+  const NOSE = P[1], SN = P[2], UL = P[0], LL = P[17], PG = P[175], G = P[9];
+  const eL = dist(NOSE, PG);
+  const eUpper = (-sdist(NOSE, PG, UL) / eL) * 100; // +면 E라인보다 뒤쪽
+  const eLower = (-sdist(NOSE, PG, LL) / eL) * 100;
+  const nla = angle(NOSE, SN, UL);
+  const sign = sdist(G, PG, SN) >= 0 ? 1 : -1;
+  const convex = sign * (180 - angle(G, SN, PG));
+  // 얼마나 옆을 보고 있나: 두 눈 바깥쪽 끝의 가로 간격 / 얼굴 높이 (정면 약 0.5, 옆모습 0.2 이하 기대)
+  const eyeSep = Math.abs(P[33].x - P[263].x) / dist(P[10], P[152]);
+  return { P, facing, eUpper, eLower, nla, convex, eyeSep };
+}
+
+function drawSideOverlay(ctx, r, w, h) {
+  const P = r.P, lw = Math.max(2, w / 350);
+  const line = (a, b, color, ext, dash) => {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    ctx.moveTo(a.x - dx * ext, a.y - dy * ext);
+    ctx.lineTo(b.x + dx * ext, b.y + dy * ext);
+    ctx.stroke();
+  };
+  const dot = (p) => { ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(p.x, p.y, lw * 2.2, 0, Math.PI * 2); ctx.fill(); };
+  ctx.save();
+  line(P[1], P[175], "rgba(255,120,110,.95)", 0.35);
+  line(P[9], P[2], "rgba(90,200,255,.9)", 0, [lw * 4, lw * 3]);
+  line(P[2], P[175], "rgba(90,200,255,.9)", 0, [lw * 4, lw * 3]);
+  line(P[2], P[1], "rgba(255,210,80,.95)", 0.8);
+  line(P[2], P[0], "rgba(255,210,80,.95)", 0.8);
+  ctx.setLineDash([]);
+  [1, 2, 0, 17, 175, 9].forEach((i) => dot(P[i]));
+  ctx.restore();
+
+  const fs = Math.max(14, Math.round(w / 34));
+  ctx.font = `800 ${fs}px sans-serif`;
+  ctx.textBaseline = "middle";
+  const pos = (v) => (v >= 0 ? "뒤 " : "앞 ") + Math.abs(v).toFixed(1) + "%";
+  const labs = [
+    "E라인 윗입술 " + pos(r.eUpper),
+    "E라인 아랫입술 " + pos(r.eLower),
+    "비순각 " + r.nla.toFixed(0) + "°",
+    "볼록도 " + r.convex.toFixed(0) + "°",
+  ];
+  labs.forEach((txt, i) => {
+    const y = fs * 1.7 * (i + 1);
+    const tw = ctx.measureText(txt).width + 14;
+    ctx.fillStyle = "rgba(0,0,0,.6)";
+    ctx.fillRect(8, y - fs * 0.8, tw, fs * 1.6);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(txt, 15, y);
+  });
+}
+
+const posTxt = (v) => (v >= 0 ? "E라인 뒤 " : "E라인 앞 ") + Math.abs(v).toFixed(1) + "%";
+const SIDE_DEFS = [
+  { key: "eUpper", title: "E라인 · 윗입술 위치", lo: 2, hi: 7.5, m: 2.5, fmt: posTxt, ideal: "기준: 코끝~턱끝 길이의 약 2~7.5% 뒤",
+    t: { ok: "윗입술이 E라인 안쪽에 안정적으로 자리 잡았어요. 옆모습 입술 위치가 좋아요.",
+         low: "윗입술이 E라인에 가깝거나 앞으로 나온 편이에요. 입 주변이 도톰하고 볼륨감 있는 인상일 수 있어요.",
+         high: "윗입술이 E라인보다 꽤 뒤쪽에 있어요. 옆에서 보면 코가 상대적으로 도드라져 보일 수 있어요." } },
+  { key: "eLower", title: "E라인 · 아랫입술 위치", lo: 0, hi: 5, m: 2.5, fmt: posTxt, ideal: "기준: 코끝~턱끝 길이의 약 0~5% 뒤",
+    t: { ok: "아랫입술 위치가 E라인 근처에서 균형이 좋아요.",
+         low: "아랫입술이 E라인보다 앞으로 나온 편이에요. 입술 볼륨 때문인지 턱끝 위치 때문인지에 따라 해석이 달라져요.",
+         high: "아랫입술이 E라인보다 뒤쪽에 있어요. 턱끝이 상대적으로 앞에 있는 옆모습일 수 있어요." } },
+  { key: "nla", title: "비순각 (코끝~코밑~윗입술)", lo: 90, hi: 110, m: 12, fmt: (v) => v.toFixed(0) + "°", ideal: "참고 범위 90° ~ 110°",
+    t: { ok: "코끝 방향과 윗입술이 이루는 각도가 안정적이에요.",
+         low: "각도가 좁은 편이에요. 코끝이 아래로 향했거나 윗입술이 앞으로 나온 경우가 있어서, 어느 쪽인지 확인해볼 만해요.",
+         high: "각도가 넓은 편이에요. 코끝이 살짝 들려 보이는 인상일 수 있어요. 귀엽고 발랄한 느낌을 주는 경우가 많아요." } },
+  { key: "convex", title: "안면 볼록도 (미간~코밑~턱끝)", lo: 5, hi: 19, m: 7, fmt: (v) => (v > 0 ? "+" : "") + v.toFixed(0) + "°", ideal: "기준 약 12° (참고 5° ~ 19°)",
+    t: { ok: "옆모습 윤곽이 부드러운 곡선으로 안정적이에요.",
+         low: "옆모습이 평평하거나 턱끝이 앞으로 나온 편이에요. 또렷하고 단단한 인상을 주는 라인이에요.",
+         high: "코밑에 비해 턱끝이 뒤로 들어가 보이는 편이에요. 옆모습에서 턱끝 위치가 인상에 영향이 커서 상담 때 짚어볼 만해요." } },
+];
+
+const SIDE_ASK = {
+  eUpper_low: ["옆모습에서 입이 앞으로 나와 보이는지, 치아 배열·잇몸·입술 볼륨 중 어느 쪽 영향인지 확인 문의"],
+  eUpper_high: ["윗입술과 코 아래 라인이 들어가 보이는지 측면 기준으로 상담"],
+  eLower_low: ["아랫입술이 앞으로 나와 보이는 원인이 입술 볼륨인지 턱끝 위치인지 확인 문의"],
+  eLower_high: ["아랫입술과 턱끝의 앞뒤 균형 확인 문의"],
+  nla_low: ["코끝 방향(처짐)과 윗입술 돌출 중 어느 쪽 영향인지 확인 문의"],
+  nla_high: ["코끝이 들려 보이는 정도(콧구멍 노출)가 인상에 영향을 주는지 확인 문의"],
+  convex_high: ["턱끝이 뒤로 들어가 보이는지 측면 기준으로 상담", "맞물림(교합)·턱 위치 문제인지도 함께 확인"],
+  convex_low: ["옆모습이 평평해 보이는 원인(이마·코·턱끝 위치)을 측면 기준으로 확인 문의"],
+};
+
+function renderSide(r) {
+  const items = [], bad = [], flags = [];
+  for (const d of SIDE_DEFS) {
+    const v = r[d.key];
+    const st = grade(v, d.lo, d.hi, d.m);
+    const dr = dir(v, d.lo, d.hi);
+    items.push({ title: d.title, status: st, value: d.fmt(v), ideal: d.ideal, comment: d.t[dr] });
+    if (st >= 1 && dr !== "ok") { flags.push({ key: d.key + "_" + dr, st }); bad.push(...(SIDE_ASK[d.key + "_" + dr] || [])); }
+  }
+  const nOk = items.filter((i) => i.status === 0).length;
+  sideStat = { n: items.length, ok: nOk };
+  sideOk = items.filter((i) => i.status === 0).map((i) => i.title.split(" (")[0]);
+  $("sideSummary").innerHTML =
+    `측면 <b>${items.length}개</b> 항목 중 <b>${nOk}개</b>는 기준 안에 있어요.<br>` +
+    `<span class="mi">측면은 각도·턱 위치에 따라 정면보다 오차가 커요. 사진을 2~3장 찍어 비슷하게 나오는지 확인해보세요.</span>`;
+  const chipTxt = ["좋아요", "살짝 차이", "체크"];
+  $("sideMetrics").innerHTML =
+    `<div class="sec">측면 항목별 결과</div>` +
+    items.map((i) => `
+      <div class="metric">
+        <div class="mh"><div class="mt">${i.title}</div><span class="chip s${i.status}">${chipTxt[i.status]}</span></div>
+        <div class="mv">${i.value}</div>
+        <div class="mi">${i.ideal}</div>
+        <div class="mc">💬 ${i.comment}</div>
+      </div>`).join("");
+  const w = [];
+  if (r.eyeSep > 0.3) w.push("얼굴이 아직 정면에 가까워 보여요. 더 정확한 옆모습일수록 수치가 정확해요.");
+  $("sideWarns").innerHTML = w.map((t) => `<div class="warnbox">⚠️ ${t}</div>`).join("");
+  sideAsk = [...new Set(bad)];
+  sideFlags = flags;
+  renderConsult();
+}
+
+
+/* ---------- 종합 리포트 ---------- */
+const FLAG_AREA = {
+  // 정면
+  up_high: "forehead_high", up_low: "forehead_low", mid_high: "mid_long",
+  low_high: "chin_long", low_low: "chin_back",
+  lowerFace_low: "chin_back", lowerFace_high: "chin_long",
+  fiveEyes_high: "eye_small", canthal_low: "eye_droop",
+  lipRatio_low: "lip_thin_low", jaw_high: "jaw_wide", asym: "asym",
+  // 측면
+  eUpper_low: "lip_forward", eLower_low: "lip_forward", nla_low: "lip_forward",
+  eUpper_high: "lip_back", eLower_high: "lip_back",
+  nla_high: "nose_up", convex_high: "chin_back", convex_low: "profile_flat",
+};
+
+// k: 0 셀프(가볍게 먼저) / 1 비수술 / 2 수술 / 3 치과
+const AREAS = {
+  chin_back: { title: "턱끝이 뒤로 들어가 보임", why: "코·입술에 비해 턱끝이 뒤쪽에 있거나 짧아 보이는 신호예요.", opts: [
+    [0, "사진 찍을 때 턱을 당기는 습관이 없는지 먼저 확인 (당기면 더 들어가 보여요)"],
+    [1, "턱끝 필러: 볼륨으로 앞쪽·길이를 보완 (일시적이라 유지기간이 있어요)"],
+    [2, "턱끝 보형물·턱끝 성형: 영구적인 방법이라 회복·부작용 상담이 필수예요"],
+    [3, "맞물림이나 턱 위치가 원인이면 교정·턱 수술 상담"] ] },
+  chin_long: { title: "하안부·턱끝이 긴 편", why: "코밑~턱끝 구간이 길어 보이는 신호예요.", opts: [
+    [0, "앞머리·헤어 볼륨으로 비율 보정"],
+    [2, "턱끝 길이를 줄이는 윤곽 수술 (시술만으로는 길이 변화에 한계가 있어요)"] ] },
+  mid_long: { title: "중안부(코 주변)가 길어 보임", why: "눈썹~코밑 구간이 긴 신호예요. 표정·각도에 크게 흔들리는 부위예요.", opts: [
+    [0, "정면 무표정으로 한 번 더 촬영해서 같은 결과인지 확인"],
+    [1, "인중·코밑 라인 정리 상담"],
+    [2, "코끝 위치 조정 등 코 성형 계열"] ] },
+  forehead_low: { title: "이마가 짧거나 납작함", why: "상안부가 짧게 나온 신호예요. 귀엽고 어려 보이는 장점이 되기도 해요.", opts: [
+    [0, "앞머리로 비율 조정"],
+    [1, "이마 필러: 볼륨으로 입체감 보완"],
+    [2, "이마 지방이식·보형물 등 수술적 방법"] ] },
+  forehead_high: { title: "이마가 넓은 편", why: "상안부가 길게 나온 신호예요.", opts: [
+    [0, "앞머리·시스루뱅으로 비율 조정"],
+    [2, "헤어라인 교정술 (수술)"] ] },
+  eye_small: { title: "얼굴 폭에 비해 눈이 작아 보임", why: "얼굴 가로 대비 눈 너비가 작게 나온 신호예요.", opts: [
+    [0, "아이라인·메이크업으로 크기감 보완"],
+    [2, "쌍꺼풀·눈매교정·트임 등 눈 크기·모양을 조정하는 수술"] ] },
+  eye_droop: { title: "눈꼬리가 수평이거나 처진 편", why: "눈꼬리 각도가 기준보다 낮게 나온 신호예요. 순한 인상이 장점일 수 있어요.", opts: [
+    [0, "아이라인 끝 각도 조정만으로도 인상이 크게 달라져요"],
+    [2, "뒤트임·눈매교정 등 눈꼬리 각도를 조정하는 수술"] ] },
+  jaw_wide: { title: "턱 폭이 넓은 편", why: "광대에 비해 턱 폭이 넓게 나온 신호예요.", opts: [
+    [0, "헤어 레이어드·턱선 쉐이딩으로 보정"],
+    [1, "사각턱 보톡스: 저작근을 줄여 라인을 정리 (반복 시술)"],
+    [2, "하악각(턱선) 윤곽 수술"] ] },
+  lip_thin_low: { title: "윗입술에 비해 아랫입술이 얇은 편", why: "입술 상하 비율이 1:1.5보다 아랫입술 쪽이 작게 나온 신호예요.", opts: [
+    [0, "립라인·립 컬러로 비율 보정"],
+    [1, "입술 필러: 아랫입술 볼륨으로 비율 보정"] ] },
+  lip_forward: { title: "입술·입 주변이 앞으로 나온 편", why: "옆모습에서 입술이 E라인에 가깝거나 앞에 있고, 비순각이 좁은 신호예요.", opts: [
+    [0, "입술 볼륨이 원인이면 립 컬러·라인으로 완화"],
+    [3, "치아 배열·잇몸이 원인이면 교정 치료 상담"],
+    [2, "돌출입 수술·코끝 처짐 교정은 원인을 확인한 뒤 상담"] ] },
+  lip_back: { title: "입술이 E라인보다 뒤쪽", why: "옆모습에서 입술이 코·턱끝에 비해 들어가 보이는 신호예요.", opts: [
+    [0, "립 메이크업으로 입체감 보완"],
+    [1, "입술 필러: 볼륨 보완"] ] },
+  nose_up: { title: "코끝이 살짝 들려 보임", why: "비순각이 넓게 나온 신호예요. 발랄하고 동안인 인상으로 보이기도 해요.", opts: [
+    [0, "본인이 만족한다면 그대로도 충분해요"],
+    [2, "코끝 성형: 코끝 각도를 조정하는 수술"] ] },
+  profile_flat: { title: "옆모습이 평평하거나 턱끝이 앞쪽", why: "안면 볼록도가 기준보다 작게 나온 신호예요.", opts: [
+    [0, "헤어·메이크업으로 입체감 보완"],
+    [1, "이마·코 필러로 입체감 조정"],
+    [2, "턱끝을 줄이는 윤곽 수술 상담"] ] },
+  asym: { title: "좌우 차이가 큰 부위가 있음", why: "자세·표정·조명 영향이 큰 항목이에요.", opts: [
+    [0, "정면 사진을 2~3장 더 찍어 같은 방향으로 나오는지 확인"],
+    [1, "근육 때문이면 보톡스, 볼륨 차이면 필러 등 (원인 확인이 먼저예요)"] ] },
+};
+const TAG = ["셀프", "비수술", "수술", "치과"];
+
+function renderReport() {
+  const el = $("report");
+  if (!hasFront && !hasSide) { el.innerHTML = ""; return; }
+  const all = [
+    ...frontFlags.map((f) => ({ ...f, v: "f" })),
+    ...sideFlags.map((f) => ({ ...f, v: "s" })),
+  ];
+  const by = {};
+  for (const f of all) {
+    const a = FLAG_AREA[f.key];
+    if (!a) continue;
+    const o = by[a] || (by[a] = { st: 0, v: new Set() });
+    o.st = Math.max(o.st, f.st);
+    o.v.add(f.v);
+  }
+  const areas = Object.entries(by).sort((a, b) => b[1].v.size - a[1].v.size || b[1].st - a[1].st);
+  const both = areas.filter(([, o]) => o.v.size === 2).length;
+
+  const stat = [];
+  if (hasFront) stat.push(`정면 ${frontStat.n}개 중 <b>${frontStat.ok}개</b>`);
+  if (hasSide) stat.push(`측면 ${sideStat.n}개 중 <b>${sideStat.ok}개</b>`);
+  const good = [...(hasFront ? frontOk : []), ...(hasSide ? sideOk : [])].slice(0, 5);
+
+  let h = `<div class="sec">종합 리포트</div>`;
+  h += `<div class="summary">${stat.join(" · ")}가 기준 안에 있어요.</div>`;
+  if (good.length) h += `<div class="mi" style="margin-top:6px">👍 잘 맞는 부분: ${good.join(", ")}</div>`;
+
+  if (!areas.length) {
+    h += `<div class="mc" style="margin-top:10px">지금 사진 기준으로는 특별히 짚을 부분이 없어요. 신경 쓰이는 곳이 있다면 그 부분만 상담 때 말씀해 보세요.</div>`;
+  } else {
+    h += `<div class="mc" style="margin-top:10px">살펴볼 부분은 <b>${areas.length}곳</b>이에요.` +
+      (both ? ` 그중 <b>${both}곳</b>은 정면·측면 둘 다에서 비슷한 신호가 나와서 먼저 보시면 좋아요.` : "") + `</div>`;
+    h += `<div class="sec" style="margin-top:18px">시술 옵션 (상담 참고용)</div>`;
+    h += `<div class="mini" style="margin-bottom:4px">"이게 필요해요"가 아니라, 같은 고민으로 상담받는 분들이 많이 거론하는 방향이에요. 가벼운 방법부터 순서대로 적었고, 시술 여부는 꼭 전문의와 직접 상담해서 정하세요.</div>`;
+    h += areas.map(([key, o]) => {
+      const A = AREAS[key];
+      const src = o.v.size === 2 ? "정면+측면" : o.v.has("f") ? "정면" : "측면";
+      return `<div class="area">
+        <div class="ah"><div class="at">${A.title}<span class="vt">${src}</span></div><span class="chip s${o.st}">${o.st >= 2 ? "뚜렷" : "약간"}</span></div>
+        <div class="mi">${A.why}</div>
+        ${A.opts.map(([k, t]) => `<div class="opt"><span class="tag tg${k}">${TAG[k]}</span><span>${t}</span></div>`).join("")}
+      </div>`;
+    }).join("");
+  }
+  if (!hasSide) h += `<div class="mini" style="margin-top:10px">측면 사진을 추가하면 턱끝·입술 돌출까지 종합해서 볼 수 있어요.</div>`;
+  if (!hasFront) h += `<div class="mini" style="margin-top:10px">정면 사진을 추가하면 이마·눈·턱 폭까지 종합해서 볼 수 있어요.</div>`;
+  el.innerHTML = h;
+}
+
+$("saveSide").onclick = () => {
+  $("cvSide").toBlob((b) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b);
+    a.download = "face-balance-side.png";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }, "image/png");
+};
+</script>
+<script>
+try {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+  }
+  let deferredPrompt = null;
+  const btn = document.getElementById("installBtn");
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; btn.classList.remove("hidden"); });
+  btn.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try { await deferredPrompt.userChoice; } catch (e) {}
+    deferredPrompt = null; btn.classList.add("hidden");
+  });
+  window.addEventListener("appinstalled", () => btn.classList.add("hidden"));
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.navigator.standalone;
+  if (ios) document.getElementById("iosHint").classList.remove("hidden");
+} catch (e) {}
+</script>
+</body>
+</html>
